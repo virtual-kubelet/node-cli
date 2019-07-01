@@ -18,3 +18,11 @@ require (
 	k8s.io/klog v0.1.0
 	k8s.io/kubernetes v1.13.7
 )
+
+replace k8s.io/client-go => k8s.io/client-go v0.0.0-20190521190702-177766529176
+
+replace k8s.io/api => k8s.io/api v0.0.0-20190222213804-5cb15d344471
+
+replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
+
+replace k8s.io/kubernetes => k8s.io/kubernetes v1.13.7
