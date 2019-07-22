@@ -172,6 +172,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
 github.com/virtual-kubelet/virtual-kubelet v0.11.1 h1:ZGdlzuiTQebOr0L1WGNzCkM47gkWRUgEU+8v3NVwweI=
 github.com/virtual-kubelet/virtual-kubelet v0.11.1/go.mod h1:U/LQr7vG/vQ3BnnPGaHQST7igDltJ7Jrg5kR6VdUIgk=
+github.com/virtual-kubelet/virtual-kubelet v1.0.0 h1:zR1JNFWVtwk1NTzO97+5Lf1Vgxv7l3GCZgzAIvA2X/0=
+github.com/virtual-kubelet/virtual-kubelet v1.0.0/go.mod h1:U/LQr7vG/vQ3BnnPGaHQST7igDltJ7Jrg5kR6VdUIgk=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.20.2 h1:NAfh7zF0/3/HqtMvJNZ/RFrSlCE6ZTlHmKfhL/Dm1Jk=
