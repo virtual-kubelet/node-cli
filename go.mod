@@ -10,7 +10,7 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.3
-	github.com/virtual-kubelet/virtual-kubelet v0.11.1
+	github.com/virtual-kubelet/virtual-kubelet v1.0.0
 	go.opencensus.io v0.20.2
 	k8s.io/api v0.0.0-20190222213804-5cb15d344471
 	k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
@@ -26,3 +26,5 @@ replace k8s.io/api => k8s.io/api v0.0.0-20190222213804-5cb15d344471
 replace k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
 
 replace k8s.io/kubernetes => k8s.io/kubernetes v1.13.7
+
+replace github.com/virtual-kubelet/virtual-kubelet => /Users/ghartmann/code/virtual-kubelet/virtual-kubelet
