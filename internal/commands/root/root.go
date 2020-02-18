@@ -108,6 +108,11 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 		return errors.Wrap(err, "could not create resource manager")
 	}
 
+	// Start the informers now, so the provider will get a functional resource
+	// manager.
+	podInformerFactory.Start(ctx.Done())
+	scmInformerFactory.Start(ctx.Done())
+
 	apiConfig, err := getAPIConfig(c)
 	if err != nil {
 		return err
@@ -187,9 +192,6 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 	if err != nil {
 		return errors.Wrap(err, "error setting up pod controller")
 	}
-
-	podInformerFactory.Start(ctx.Done())
-	scmInformerFactory.Start(ctx.Done())
 
 	cancelHTTP, err := setupHTTPServer(ctx, p, apiConfig)
 	if err != nil {
