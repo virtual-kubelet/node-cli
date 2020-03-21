@@ -193,7 +193,9 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 		return errors.Wrap(err, "error setting up pod controller")
 	}
 
-	cancelHTTP, err := setupHTTPServer(ctx, p, apiConfig)
+	cancelHTTP, err := setupHTTPServer(ctx, p, apiConfig, func(context.Context) ([]*corev1.Pod, error) {
+		return rm.GetPods(), nil
+	})
 	if err != nil {
 		return err
 	}
