@@ -61,6 +61,20 @@ This allows users to schedule kubernetes workloads on nodes that aren't running 
 }
 
 func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error {
+	pInit := s.Get(c.Provider)
+	if pInit == nil {
+		return errors.Errorf("provider %q not found", c.Provider)
+	}
+
+	client, err := newClient(c.KubeConfigPath)
+	if err != nil {
+		return err
+	}
+
+	return runRootCommandWithProviderAndClient(ctx, pInit, client, c)
+}
+
+func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.InitFunc, client kubernetes.Interface, c *opts.Opts) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -79,11 +93,6 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 		if err != nil {
 			return err
 		}
-	}
-
-	client, err := newClient(c.KubeConfigPath)
-	if err != nil {
-		return err
 	}
 
 	// Create a shared informer factory for Kubernetes pods in the current namespace (if specified) and scheduled to the current node.
@@ -126,11 +135,6 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 		DaemonPort:        int32(c.ListenPort),
 		InternalIP:        os.Getenv("VKUBELET_POD_IP"),
 		KubeClusterDomain: c.KubeClusterDomain,
-	}
-
-	pInit := s.Get(c.Provider)
-	if pInit == nil {
-		return errors.Errorf("provider %q not found", c.Provider)
 	}
 
 	p, err := pInit(initConfig)
