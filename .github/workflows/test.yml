@@ -68,7 +68,7 @@ jobs:
       - uses: actions/cache@v1
         id: bin
         with:
-          path: ~/bin/golangci-lint
+          path: ~/bin/
           key: golangi-lint-${{ env.GOLANGCI_LINT_VERSION }}
       - name: Install golangci-lint
         if: steps.bin.outputs.cache-hit != 'true'
