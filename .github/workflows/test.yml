@@ -35,6 +35,8 @@ jobs:
         key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-build-
+    - name: go env
+      run: go env
     - name: Fetch dependencies
       run: go get
     - name: Run tests
