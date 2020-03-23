@@ -9,6 +9,7 @@ on:
 env:
   GO111MODULE: on
   GOLANGCI_LINT_VERSION: 1.23.8
+
 jobs:
   test:
     strategy:
@@ -66,7 +67,7 @@ jobs:
         id: bin
         with:
           path: ~/bin/golangci-lint
-          key: golangi-lint-${{ GOLANGCI_LINT_VERSION }}
+          key: golangi-lint-${{ env.GOLANGCI_LINT_VERSION }}
       - name: Install golangci-lint
         if: steps.bin.outputs.cache-hit != 'true'
         run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ~/bin/ ${GOLANGCI_LINT_VERSION}
