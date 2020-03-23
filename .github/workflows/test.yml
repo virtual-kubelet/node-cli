@@ -8,7 +8,7 @@ on:
 
 env:
   GO111MODULE: on
-
+  GOLANGCI_LINT_VERSION: 1.23.8
 jobs:
   test:
     strategy:
@@ -62,8 +62,13 @@ jobs:
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-build-
+      - uses: actions/cache@v1
+        id: bin
+        with:
+          path: ~/bin/golangci-lint
+          key: golangi-lint-${{ GOLANGCI_LINT_VERSION }}
+      - name: Install golangci-lint
+        if: steps.bin.outputs.cache-hit != 'true'
+        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ~/bin/ ${GOLANGCI_LINT_VERSION}
       - name: Lint
-        run: |
-          docker run -e GOCACHE=/go/.cache -v ~/.cache/go-build:/go/.cache -v ~/go/pkg/mod:/go/pkg/mod -e GO111MODULE --rm -v `pwd`:/go/src/github.com/virtual-kubelet/node-cli -w /go/src/github.com/virtual-kubelet/node-cli \
-            golangci/golangci-lint:v1.23.8 golangci-lint run --disable-all -v \
-            -E govet -E misspell -E gofmt -E ineffassign -E golint
+        run: ~/bin/golangci-lint run --disable-all -v -E govet -E misspell -E gofmt -E ineffassign -E golint
