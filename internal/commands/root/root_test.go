@@ -19,12 +19,12 @@ func TestRunRootCommand(t *testing.T) {
 	opts := opts.New()
 
 	providerInitFunc := func(cfg provider.InitConfig) (provider.Provider, error) {
-		mockConfig := mock.MockConfig{
+		mockConfig := mock.Config{
 			CPU:    "1",
 			Memory: "128M",
 			Pods:   "120",
 		}
-		return mock.NewMockProviderMockConfig(mockConfig, cfg.NodeName, cfg.OperatingSystem, cfg.InternalIP, cfg.DaemonPort)
+		return mock.NewProviderConfig(mockConfig, cfg.NodeName, cfg.OperatingSystem, cfg.InternalIP, cfg.DaemonPort)
 	}
 	fakeClient := fake.NewSimpleClientset()
 	errCh := make(chan error)
