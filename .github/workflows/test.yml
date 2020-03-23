@@ -8,6 +8,7 @@ on:
 
 env:
   GO111MODULE: on
+  GOLANGCI_LINT_VERSION: 1.23.8
 
 jobs:
   test:
@@ -23,6 +24,20 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Checkout code
       uses: actions/checkout@v2
+    - uses: actions/cache@v1
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-mod-
+    - uses: actions/cache@v1
+      with:
+        path: ~/.build/go-cache
+        key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-build-
+    - name: go env
+      run: go env
     - name: Fetch dependencies
       run: go get
     - name: Run tests
@@ -34,10 +49,29 @@ jobs:
     steps:
       - name: Install Go
         uses: actions/setup-go@v1
+        with:
+          go-version: 1.13.x
       - name: Checkout code
         uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-mod-
+      - uses: actions/cache@v1
+        with:
+          path: ~/.build/go-cache
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
+      - uses: actions/cache@v1
+        id: bin
+        with:
+          path: ~/bin/
+          key: golangi-lint-${{ env.GOLANGCI_LINT_VERSION }}
+      - name: Install golangci-lint
+        if: steps.bin.outputs.cache-hit != 'true'
+        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ~/bin/ v${GOLANGCI_LINT_VERSION}
       - name: Lint
-        run: |
-          docker run -e GO111MODULE --rm -v `pwd`:/go/src/github.com/virtual-kubelet/node-cli -w /go/src/github.com/virtual-kubelet/node-cli \
-            golangci/golangci-lint:v1.23.8 golangci-lint run --disable-all -v \
-            -E govet -E misspell -E gofmt -E ineffassign -E golint
+        run: ~/bin/golangci-lint run --disable-all -v -E govet -E misspell -E gofmt -E ineffassign -E golint
