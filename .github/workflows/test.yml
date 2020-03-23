@@ -70,6 +70,6 @@ jobs:
           key: golangi-lint-${{ env.GOLANGCI_LINT_VERSION }}
       - name: Install golangci-lint
         if: steps.bin.outputs.cache-hit != 'true'
-        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ~/bin/ ${GOLANGCI_LINT_VERSION}
+        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ~/bin/ v${GOLANGCI_LINT_VERSION}
       - name: Lint
         run: ~/bin/golangci-lint run --disable-all -v -E govet -E misspell -E gofmt -E ineffassign -E golint
