@@ -154,9 +154,13 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 		leaseClient = client.CoordinationV1beta1().Leases(corev1.NamespaceNodeLease)
 	}
 
+	nodeProvider, ok := p.(node.NodeProvider)
+	if !ok {
+		nodeProvider = node.NaiveNodeProvider{}
+	}
 	pNode := NodeFromProvider(ctx, c.NodeName, taint, p, c.Version)
 	nodeRunner, err := node.NewNodeController(
-		node.NaiveNodeProvider{},
+		nodeProvider,
 		pNode,
 		client.CoreV1().Nodes(),
 		node.WithNodeEnableLeaseV1Beta1(leaseClient, nil),
