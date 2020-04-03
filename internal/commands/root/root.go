@@ -44,7 +44,7 @@ import (
 
 // NewCommand creates a new top-level command.
 // This command is used to start the virtual-kubelet daemon
-func NewCommand(ctx context.Context, name string, s *provider.Store, o *opts.Opts) *cobra.Command {
+func NewCommand(name string, s *provider.Store, o *opts.Opts) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: name + " provides a virtual kubelet interface for your kubernetes cluster.",
@@ -52,7 +52,7 @@ func NewCommand(ctx context.Context, name string, s *provider.Store, o *opts.Opt
 backend implementation allowing users to create kubernetes nodes without running the kubelet.
 This allows users to schedule kubernetes workloads on nodes that aren't running Kubernetes.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runRootCommand(ctx, s, o)
+			return runRootCommand(cmd.Context(), s, o)
 		},
 	}
 
