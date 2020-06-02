@@ -22,6 +22,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/virtual-kubelet/node-cli/opts"
@@ -89,9 +90,11 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 		mux := http.NewServeMux()
 
 		podRoutes := api.PodHandlerConfig{
-			RunInContainer:   p.RunInContainer,
-			GetContainerLogs: p.GetContainerLogs,
-			GetPods:          p.GetPods,
+			RunInContainer:        p.RunInContainer,
+			GetContainerLogs:      p.GetContainerLogs,
+			GetPods:               p.GetPods,
+			StreamIdleTimeout:     cfg.StreamIdleTimeout,
+			StreamCreationTimeout: cfg.StreamCreationTimeout,
 		}
 		api.AttachPodRoutes(podRoutes, mux, true)
 
@@ -143,10 +146,12 @@ func serveHTTP(ctx context.Context, s *http.Server, l net.Listener, name string)
 }
 
 type apiServerConfig struct {
-	CertPath    string
-	KeyPath     string
-	Addr        string
-	MetricsAddr string
+	CertPath              string
+	KeyPath               string
+	Addr                  string
+	MetricsAddr           string
+	StreamIdleTimeout     time.Duration
+	StreamCreationTimeout time.Duration
 }
 
 func getAPIConfig(c *opts.Opts) (*apiServerConfig, error) {
