@@ -40,6 +40,7 @@ const (
 	DefaultTaintKey              = "virtual-kubelet.io/provider"
 	DefaultStreamIdleTimeout     = 4 * time.Hour
 	DefaultStreamCreationTimeout = 30 * time.Second
+	DefaultWorkQueueRetryQPS     = 10
 )
 
 // Opts stores all the options for configuring the root virtual-kubelet command.
@@ -93,6 +94,8 @@ type Opts struct {
 	KubeAPIQPS int32
 	// KubeAPIBurst is the burst to allow while talking with kubernetes apiserver
 	KubeAPIBurst int32
+	// WorkQueueRetryQPS is the default qps limit when retry for k8s workqueue
+	WorkQueueRetryQPS int
 
 	Version string
 }
@@ -147,6 +150,7 @@ func setDefaults(o *Opts) {
 	o.KubeClusterDomain = DefaultKubeClusterDomain
 	o.StreamIdleTimeout = DefaultStreamIdleTimeout
 	o.StreamCreationTimeout = DefaultStreamCreationTimeout
+	o.WorkQueueRetryQPS = DefaultWorkQueueRetryQPS
 }
 
 func getEnv(key, defaultValue string) string {

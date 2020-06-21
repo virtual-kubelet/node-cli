@@ -47,6 +47,8 @@ func installFlags(flags *pflag.FlagSet, c *opts.Opts) {
 		"kubeAPIQPS is the QPS to use while talking with kubernetes apiserver")
 	flags.Int32Var(&c.KubeAPIBurst, "kube-api-burst", c.KubeAPIBurst,
 		"kubeAPIBurst is the burst to allow while talking with kubernetes apiserver")
+	flags.IntVar(&c.WorkQueueRetryQPS, "workqueue-retry-qps", c.WorkQueueRetryQPS,
+		"workqueue-retry-qps is the rate limit when objects in a workqueue, default 10.")
 
 	flagset := flag.NewFlagSet("klog", flag.PanicOnError)
 	klog.InitFlags(flagset)
