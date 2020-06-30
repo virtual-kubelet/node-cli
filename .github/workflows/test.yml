@@ -8,7 +8,7 @@ on:
 
 env:
   GO111MODULE: on
-  GOLANGCI_LINT_VERSION: 1.23.8
+  GOLANGCI_LINT_VERSION: 1.27.0
 
 jobs:
   test:
@@ -73,5 +73,7 @@ jobs:
       - name: Install golangci-lint
         if: steps.bin.outputs.cache-hit != 'true'
         run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ~/bin/ v${GOLANGCI_LINT_VERSION}
+      - name: Precompile packages
+        run: go build ./...
       - name: Lint
         run: ~/bin/golangci-lint run --disable-all -v -E govet -E misspell -E gofmt -E ineffassign -E golint
