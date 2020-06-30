@@ -196,6 +196,7 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 		SecretInformer:    secretInformer,
 		ConfigMapInformer: configMapInformer,
 		ServiceInformer:   serviceInformer,
+		RateLimiter:       c.RateLimiter,
 	})
 	if err != nil {
 		return errors.Wrap(err, "error setting up pod controller")
