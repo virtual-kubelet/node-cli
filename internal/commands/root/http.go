@@ -98,6 +98,15 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 		}
 		api.AttachPodRoutes(podRoutes, mux, true)
 
+		var summaryHandlerFunc api.PodStatsSummaryHandlerFunc
+		if mp, ok := p.(provider.PodMetricsProvider); ok {
+			summaryHandlerFunc = mp.GetStatsSummary
+		}
+		podMetricsRoutes := api.PodMetricsConfig{
+			GetStatsSummary: summaryHandlerFunc,
+		}
+		api.AttachPodMetricsRoutes(podMetricsRoutes, mux)
+
 		s := &http.Server{
 			Handler:   mux,
 			TLSConfig: tlsCfg,
@@ -106,16 +115,11 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 		closers = append(closers, s)
 	}
 
-	if cfg.MetricsAddr == "" {
-		log.G(ctx).Info("Pod metrics server not setup due to empty metrics address")
-	} else {
+	if cfg.MetricsAddr != "" {
 		l, err := net.Listen("tcp", cfg.MetricsAddr)
 		if err != nil {
 			return nil, errors.Wrap(err, "could not setup listener for pod metrics http server")
 		}
-
-		mux := http.NewServeMux()
-
 		var summaryHandlerFunc api.PodStatsSummaryHandlerFunc
 		if mp, ok := p.(provider.PodMetricsProvider); ok {
 			summaryHandlerFunc = mp.GetStatsSummary
@@ -123,6 +127,8 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 		podMetricsRoutes := api.PodMetricsConfig{
 			GetStatsSummary: summaryHandlerFunc,
 		}
+
+		mux := http.NewServeMux()
 		api.AttachPodMetricsRoutes(podMetricsRoutes, mux)
 		s := &http.Server{
 			Handler: mux,
