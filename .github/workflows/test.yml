@@ -2,9 +2,9 @@ name: Go
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, release-0.2 ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, release-0.2 ]
 
 env:
   GO111MODULE: on
