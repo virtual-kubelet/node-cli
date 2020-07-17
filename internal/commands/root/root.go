@@ -20,6 +20,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/coreos/go-systemd/daemon"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/virtual-kubelet/node-cli/manager"
@@ -229,6 +230,12 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 			log.G(ctx).Fatal(err)
 		}
 	}()
+
+	// Wait for node controller ready
+	<-nodeRunner.Ready()
+
+	// If systemd is used, notify it that we have started
+	go daemon.SdNotify(false, "READY=1")
 
 	log.G(ctx).Info("Initialized")
 

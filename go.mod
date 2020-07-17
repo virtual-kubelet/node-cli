@@ -6,6 +6,7 @@ require (
 	github.com/Microsoft/hcsshim v0.8.6 // indirect
 	github.com/cloudflare/cfssl v0.0.0-20180726162950-56268a613adf // indirect
 	github.com/codedellemc/goscaleio v0.0.0-20170830184815-20e2ce2cf885 // indirect
+	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e
 	github.com/coreos/rkt v1.30.0 // indirect
 	github.com/d2g/dhcp4 v0.0.0-20170904100407-a1d1b6c41b1c // indirect
 	github.com/d2g/dhcp4client v0.0.0-20170829104524-6e570ed0a266 // indirect
@@ -35,8 +36,8 @@ require (
 	k8s.io/apimachinery v0.17.6
 	k8s.io/client-go v10.0.0+incompatible
 	k8s.io/klog v1.0.0
-	k8s.io/kubernetes v1.17.6
 	k8s.io/kubectl v0.17.6
+	k8s.io/kubernetes v1.17.6
 )
 
 replace k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.17.6
