@@ -32,7 +32,7 @@ func TestRunRootCommand(t *testing.T) {
 		errCh <- runRootCommandWithProviderAndClient(ctx, providerInitFunc, fakeClient, opts)
 	}()
 
-	watch, err := fakeClient.CoreV1().Nodes().Watch(metav1.ListOptions{})
+	watch, err := fakeClient.CoreV1().Nodes().Watch(ctx, metav1.ListOptions{})
 	assert.NilError(t, err)
 	defer watch.Stop()
 	for ev := range watch.ResultChan() {
