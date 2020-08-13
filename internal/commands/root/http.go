@@ -96,16 +96,11 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 			StreamIdleTimeout:     cfg.StreamIdleTimeout,
 			StreamCreationTimeout: cfg.StreamCreationTimeout,
 		}
-		api.AttachPodRoutes(podRoutes, mux, true)
 
-		var summaryHandlerFunc api.PodStatsSummaryHandlerFunc
 		if mp, ok := p.(provider.PodMetricsProvider); ok {
-			summaryHandlerFunc = mp.GetStatsSummary
+			podRoutes.GetStatsSummary = mp.GetStatsSummary
 		}
-		podMetricsRoutes := api.PodMetricsConfig{
-			GetStatsSummary: summaryHandlerFunc,
-		}
-		api.AttachPodMetricsRoutes(podMetricsRoutes, mux)
+		api.AttachPodRoutes(podRoutes, mux, true)
 
 		s := &http.Server{
 			Handler:   mux,
