@@ -35,7 +35,7 @@ type Option func(*Command)
 
 // Command builds the CLI command
 type Command struct {
-	cmd                *cobra.Command
+	cmd                *root.Command
 	s                  *provider.Store
 	name               string
 	version            string
@@ -44,6 +44,11 @@ type Command struct {
 	persistentFlags    []*pflag.FlagSet
 	persistentPreRunCb []func() error
 	opts               *opts.Opts
+}
+
+// Controller includes methods to comunicate with controllers, for example PodController and NodeController
+type Controller interface {
+	Ready() <-chan struct{}
 }
 
 // ContextWithCancelOnSignal returns a context which will be cancelled when
@@ -168,4 +173,20 @@ func New(ctx context.Context, options ...Option) (*Command, error) {
 func (c *Command) Run(ctx context.Context, args ...string) error {
 	c.cmd.SetArgs(args)
 	return c.cmd.ExecuteContext(ctx)
+}
+
+// PodController returns interface, which expose part of PodController’s methods
+func (c *Command) PodController() Controller {
+	if c.cmd.PodController == nil {
+		return nil
+	}
+	return c.cmd.PodController
+}
+
+// NodeController returns interface, which expose part of NodeController’s methods
+func (c *Command) NodeController() Controller {
+	if c.cmd.NodeController == nil {
+		return nil
+	}
+	return c.cmd.NodeController
 }

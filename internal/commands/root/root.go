@@ -42,9 +42,17 @@ import (
 	"k8s.io/client-go/tools/record"
 )
 
+// Command for internal command, wrap cobra.Command
+type Command struct {
+	*cobra.Command
+	NodeController *node.NodeController
+	PodController  *node.PodController
+}
+
 // NewCommand creates a new top-level command.
 // This command is used to start the virtual-kubelet daemon
-func NewCommand(name string, s *provider.Store, o *opts.Opts) *cobra.Command {
+func NewCommand(name string, s *provider.Store, o *opts.Opts) *Command {
+	internalCmd := new(Command)
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: name + " provides a virtual kubelet interface for your kubernetes cluster.",
@@ -52,38 +60,42 @@ func NewCommand(name string, s *provider.Store, o *opts.Opts) *cobra.Command {
 backend implementation allowing users to create kubernetes nodes without running the kubelet.
 This allows users to schedule kubernetes workloads on nodes that aren't running Kubernetes.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runRootCommand(cmd.Context(), s, o)
+			nodeCtrl, podCtrl, err := runRootCommand(cmd.Context(), s, o)
+			internalCmd.NodeController = nodeCtrl
+			internalCmd.PodController = podCtrl
+			return err
 		},
 	}
 
 	installFlags(cmd.Flags(), o)
-	return cmd
+	internalCmd.Command = cmd
+	return internalCmd
 }
 
-func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error {
+func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) (*node.NodeController, *node.PodController, error) {
 	pInit := s.Get(c.Provider)
 	if pInit == nil {
-		return errors.Errorf("provider %q not found", c.Provider)
+		return nil, nil, errors.Errorf("provider %q not found", c.Provider)
 	}
 
 	client, err := newClient(c.KubeConfigPath, c.KubeAPIQPS, c.KubeAPIBurst)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	return runRootCommandWithProviderAndClient(ctx, pInit, client, c)
 }
 
-func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.InitFunc, client kubernetes.Interface, c *opts.Opts) error {
+func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.InitFunc, client kubernetes.Interface, c *opts.Opts) (*node.NodeController, *node.PodController, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	if ok := provider.ValidOperatingSystems[c.OperatingSystem]; !ok {
-		return errdefs.InvalidInputf("operating system %q is not supported", c.OperatingSystem)
+		return nil, nil, errdefs.InvalidInputf("operating system %q is not supported", c.OperatingSystem)
 	}
 
 	if c.PodSyncWorkers == 0 {
-		return errdefs.InvalidInput("pod sync workers must be greater than 0")
+		return nil, nil, errdefs.InvalidInput("pod sync workers must be greater than 0")
 	}
 
 	var taint *corev1.Taint
@@ -91,7 +103,7 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 		var err error
 		taint, err = getTaint(c)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 	}
 
@@ -114,7 +126,7 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 
 	rm, err := manager.NewResourceManager(podInformer.Lister(), secretInformer.Lister(), configMapInformer.Lister(), serviceInformer.Lister())
 	if err != nil {
-		return errors.Wrap(err, "could not create resource manager")
+		return nil, nil, errors.Wrap(err, "could not create resource manager")
 	}
 
 	// Start the informers now, so the provider will get a functional resource
@@ -124,7 +136,7 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 
 	apiConfig, err := getAPIConfig(c)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	initConfig := provider.InitConfig{
@@ -139,7 +151,7 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 
 	p, err := pInit(initConfig)
 	if err != nil {
-		return errors.Wrapf(err, "error initializing provider %s", c.Provider)
+		return nil, nil, errors.Wrapf(err, "error initializing provider %s", c.Provider)
 	}
 
 	ctx = log.WithLogger(ctx, log.G(ctx).WithFields(log.Fields{
@@ -199,12 +211,12 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 		RateLimiter:       c.RateLimiter,
 	})
 	if err != nil {
-		return errors.Wrap(err, "error setting up pod controller")
+		return nil, nil, errors.Wrap(err, "error setting up pod controller")
 	}
 
 	cancelHTTP, err := setupHTTPServer(ctx, p, apiConfig)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	defer cancelHTTP()
 
@@ -220,7 +232,7 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 		// 2. It prevents node advertisement from happening until we're in an operational state
 		err = waitFor(ctx, c.StartupTimeout, pc.Ready())
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 	}
 
@@ -233,7 +245,7 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 	log.G(ctx).Info("Initialized")
 
 	<-ctx.Done()
-	return nil
+	return nodeRunner, pc, nil
 }
 
 func waitFor(ctx context.Context, time time.Duration, ready <-chan struct{}) error {

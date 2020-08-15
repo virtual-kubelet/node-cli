@@ -29,7 +29,8 @@ func TestRunRootCommand(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 	errCh := make(chan error)
 	go func() {
-		errCh <- runRootCommandWithProviderAndClient(ctx, providerInitFunc, fakeClient, opts)
+		_, _, e := runRootCommandWithProviderAndClient(ctx, providerInitFunc, fakeClient, opts)
+		errCh <- e
 	}()
 
 	watch, err := fakeClient.CoreV1().Nodes().Watch(ctx, metav1.ListOptions{})
