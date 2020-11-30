@@ -48,6 +48,9 @@ func installFlags(flags *pflag.FlagSet, c *opts.Opts) {
 	flags.Int32Var(&c.KubeAPIBurst, "kube-api-burst", c.KubeAPIBurst,
 		"kubeAPIBurst is the burst to allow while talking with kubernetes apiserver")
 
+	flags.StringVar(&c.ClientCACert, "client-verify-ca", os.Getenv("APISERVER_CA_CERT_LOCATION"), "CA cert to use to verify client requests")
+	flags.BoolVar(&c.AllowUnauthenticatedClients, "no-verify-clients", false, "Do not require client certificate validation")
+
 	flagset := flag.NewFlagSet("klog", flag.PanicOnError)
 	klog.InitFlags(flagset)
 	flagset.VisitAll(func(f *flag.Flag) {
