@@ -17,8 +17,10 @@ package root
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -45,10 +47,30 @@ var AcceptedCiphers = []uint16{
 	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 }
 
-func loadTLSConfig(certPath, keyPath string) (*tls.Config, error) {
+func loadTLSConfig(certPath, keyPath, caPath string, allowUnauthenticatedClients bool) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "error loading tls certs")
+	}
+
+	var (
+		caPool     *x509.CertPool
+		clientAuth = tls.RequireAndVerifyClientCert
+	)
+
+	if allowUnauthenticatedClients {
+		clientAuth = tls.NoClientCert
+	}
+
+	if caPath != "" {
+		caPool = x509.NewCertPool()
+		pem, err := ioutil.ReadFile(caPath)
+		if err != nil {
+			return nil, err
+		}
+		if !caPool.AppendCertsFromPEM(pem) {
+			return nil, errors.New("error appending ca cert to certificate pool")
+		}
 	}
 
 	return &tls.Config{
@@ -56,6 +78,8 @@ func loadTLSConfig(certPath, keyPath string) (*tls.Config, error) {
 		MinVersion:               tls.VersionTLS12,
 		PreferServerCipherSuites: true,
 		CipherSuites:             AcceptedCiphers,
+		ClientCAs:                caPool,
+		ClientAuth:               clientAuth,
 	}, nil
 }
 
@@ -72,19 +96,20 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 		}
 	}()
 
-	if cfg.CertPath == "" || cfg.KeyPath == "" {
+	if cfg.CertPath == "" || cfg.KeyPath == "" || (cfg.CACertPath == "" && !cfg.AllowUnauthenticatedClients) {
 		log.G(ctx).
 			WithField("certPath", cfg.CertPath).
 			WithField("keyPath", cfg.KeyPath).
+			WithField("caPath", cfg.CACertPath).
 			Error("TLS certificates not provided, not setting up pod http server")
 	} else {
-		tlsCfg, err := loadTLSConfig(cfg.CertPath, cfg.KeyPath)
+		tlsCfg, err := loadTLSConfig(cfg.CertPath, cfg.KeyPath, cfg.CACertPath, cfg.AllowUnauthenticatedClients)
 		if err != nil {
 			return nil, err
 		}
 		l, err := tls.Listen("tcp", cfg.Addr, tlsCfg)
 		if err != nil {
-			return nil, errors.Wrap(err, "error setting up listener for pod http server")
+			return nil, errors.Wrapf(err, "error setting up listener for pod http server: tlsconfig: \n%+v", tlsCfg)
 		}
 
 		mux := http.NewServeMux()
@@ -147,12 +172,14 @@ func serveHTTP(ctx context.Context, s *http.Server, l net.Listener, name string)
 }
 
 type apiServerConfig struct {
-	CertPath              string
-	KeyPath               string
-	Addr                  string
-	MetricsAddr           string
-	StreamIdleTimeout     time.Duration
-	StreamCreationTimeout time.Duration
+	CACertPath                  string
+	CertPath                    string
+	KeyPath                     string
+	Addr                        string
+	MetricsAddr                 string
+	StreamIdleTimeout           time.Duration
+	StreamCreationTimeout       time.Duration
+	AllowUnauthenticatedClients bool
 }
 
 func getAPIConfig(c *opts.Opts) (*apiServerConfig, error) {
@@ -165,6 +192,12 @@ func getAPIConfig(c *opts.Opts) (*apiServerConfig, error) {
 	config.MetricsAddr = c.MetricsAddr
 	config.StreamIdleTimeout = c.StreamIdleTimeout
 	config.StreamCreationTimeout = c.StreamCreationTimeout
+	config.AllowUnauthenticatedClients = c.AllowUnauthenticatedClients
+
+	config.CACertPath = c.ClientCACert
+	if c.ClientCACert == "" {
+		config.CACertPath = os.Getenv("APISERVER_CA_CERT_LOCATION")
+	}
 
 	return &config, nil
 }

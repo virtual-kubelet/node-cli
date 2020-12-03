@@ -75,6 +75,11 @@ type Opts struct {
 
 	MetricsAddr string
 
+	// Only trust clients with tls certs signed by the provided CA
+	ClientCACert string
+	// Do not require client tls verification
+	AllowUnauthenticatedClients bool
+
 	// Number of workers to use to handle pod notifications
 	PodSyncWorkers       int
 	InformerResyncPeriod time.Duration
