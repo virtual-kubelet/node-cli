@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/gorilla/mux v1.7.3 // indirect
-	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
@@ -13,13 +12,16 @@ require (
 	github.com/virtual-kubelet/virtual-kubelet v1.3.0
 	go.opencensus.io v0.21.0
 	gotest.tools v2.2.0+incompatible
-	k8s.io/api v0.18.4
-	k8s.io/apimachinery v0.18.4
-	k8s.io/client-go v0.18.4
+	k8s.io/api v0.18.6
+	k8s.io/apimachinery v0.18.6
+	k8s.io/apiserver v0.18.4
+	k8s.io/client-go v0.18.6
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20200410145947-bcb3869e6f29 // indirect
 	k8s.io/kubernetes v1.18.4
 )
+
+replace github.com/virtual-kubelet/virtual-kubelet => github.com/gossion/virtual-kubelet v1.3.1-0.20201216090852-0b5430b1446f
 
 replace k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.18.4
 

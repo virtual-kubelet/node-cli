@@ -24,6 +24,8 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/util/workqueue"
+
+	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 )
 
 // Defaults for root command options
@@ -103,6 +105,11 @@ type Opts struct {
 	RateLimiter workqueue.RateLimiter
 
 	Version string
+
+	// authentication specifies how requests to the Kubelet's server are authenticated
+	Authentication kubeletconfig.KubeletAuthentication
+	// authorization specifies how requests to the Kubelet's server are authorized
+	Authorization kubeletconfig.KubeletAuthorization
 }
 
 // FromEnv sets default options for unset values on the passed in option struct.

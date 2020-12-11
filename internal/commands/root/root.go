@@ -40,6 +40,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
+	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
+
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // NewCommand creates a new top-level command.
@@ -56,8 +59,21 @@ This allows users to schedule kubernetes workloads on nodes that aren't running 
 		},
 	}
 
+	applyLegacyDefaults(o)
+
 	installFlags(cmd.Flags(), o)
 	return cmd
+}
+
+// This is used to construct the baseline default KubeletConfiguration
+// before the first round of flag parsing.
+func applyLegacyDefaults(o *opts.Opts) {
+	// --anonymous-auth
+	o.Authentication.Anonymous.Enabled = true
+	// --authentication-token-webhook
+	o.Authentication.Webhook.Enabled = false
+	// --authorization-mode
+	o.Authorization.Mode = kubeletconfig.KubeletAuthorizationModeAlwaysAllow
 }
 
 func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error {
@@ -126,6 +142,9 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 	if err != nil {
 		return err
 	}
+
+	auth, _ /*?*/, err := BuildAuth(types.NodeName(c.NodeName), client, *c)
+	apiConfig.Auth = auth
 
 	initConfig := provider.InitConfig{
 		ConfigPath:        c.ProviderConfigPath,

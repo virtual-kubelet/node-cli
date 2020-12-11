@@ -24,6 +24,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -31,6 +32,8 @@ import (
 	"github.com/virtual-kubelet/node-cli/provider"
 	"github.com/virtual-kubelet/virtual-kubelet/log"
 	"github.com/virtual-kubelet/virtual-kubelet/node/api"
+
+	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 )
 
 // AcceptedCiphers is the list of accepted TLS ciphers, with known weak ciphers elided
@@ -47,7 +50,7 @@ var AcceptedCiphers = []uint16{
 	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 }
 
-func loadTLSConfig(certPath, keyPath, caPath string, allowUnauthenticatedClients bool) (*tls.Config, error) {
+func loadTLSConfig(ctx context.Context, certPath, keyPath, caPath string, allowUnauthenticatedClients bool) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "error loading tls certs")
@@ -103,7 +106,7 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 			WithField("caPath", cfg.CACertPath).
 			Error("TLS certificates not provided, not setting up pod http server")
 	} else {
-		tlsCfg, err := loadTLSConfig(cfg.CertPath, cfg.KeyPath, cfg.CACertPath, cfg.AllowUnauthenticatedClients)
+		tlsCfg, err := loadTLSConfig(ctx, cfg.CertPath, cfg.KeyPath, cfg.CACertPath, cfg.AllowUnauthenticatedClients)
 		if err != nil {
 			return nil, err
 		}
@@ -125,6 +128,12 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 		if mp, ok := p.(provider.PodMetricsProvider); ok {
 			podRoutes.GetStatsSummary = mp.GetStatsSummary
 		}
+
+		if cfg.Auth != nil && cfg.EnableTokenAuth {
+			m := NewKubeletKubeletAuthMiddleware(ctx, cfg.Auth)
+			podRoutes.Middlewares = []api.Middleware{m.AuthFilter}
+		}
+
 		api.AttachPodRoutes(podRoutes, mux, true)
 
 		s := &http.Server{
@@ -180,12 +189,21 @@ type apiServerConfig struct {
 	StreamIdleTimeout           time.Duration
 	StreamCreationTimeout       time.Duration
 	AllowUnauthenticatedClients bool
+
+	Auth            kubeletserver.AuthInterface
+	EnableTokenAuth bool
 }
 
 func getAPIConfig(c *opts.Opts) (*apiServerConfig, error) {
 	config := apiServerConfig{
 		CertPath: os.Getenv("APISERVER_CERT_LOCATION"),
 		KeyPath:  os.Getenv("APISERVER_KEY_LOCATION"),
+	}
+
+	// For testing only, adding a toggle to turn on/off auth token
+	EnableTokenAuth := os.Getenv("EnableTokenAuth")
+	if strings.EqualFold(EnableTokenAuth, "true") {
+		config.EnableTokenAuth = true
 	}
 
 	config.Addr = fmt.Sprintf(":%d", c.ListenPort)

@@ -51,6 +51,28 @@ func installFlags(flags *pflag.FlagSet, c *opts.Opts) {
 	flags.StringVar(&c.ClientCACert, "client-verify-ca", os.Getenv("APISERVER_CA_CERT_LOCATION"), "CA cert to use to verify client requests")
 	flags.BoolVar(&c.AllowUnauthenticatedClients, "no-verify-clients", false, "Do not require client certificate validation")
 
+	// Authentication
+	flags.BoolVar(&c.Authentication.Anonymous.Enabled, "anonymous-auth", c.Authentication.Anonymous.Enabled, ""+
+		"Enables anonymous requests to the Kubelet server. Requests that are not rejected by another "+
+		"authentication method are treated as anonymous requests. Anonymous requests have a username "+
+		"of system:anonymous, and a group name of system:unauthenticated.")
+	flags.BoolVar(&c.Authentication.Webhook.Enabled, "authentication-token-webhook", c.Authentication.Webhook.Enabled, ""+
+		"Use the TokenReview API to determine authentication for bearer tokens.")
+	flags.DurationVar(&c.Authentication.Webhook.CacheTTL.Duration, "authentication-token-webhook-cache-ttl", c.Authentication.Webhook.CacheTTL.Duration, ""+
+		"The duration to cache responses from the webhook token authenticator.")
+	flags.StringVar(&c.Authentication.X509.ClientCAFile, "client-ca-file", c.Authentication.X509.ClientCAFile, ""+
+		"If set, any request presenting a client certificate signed by one of the authorities in the client-ca-file "+
+		"is authenticated with an identity corresponding to the CommonName of the client certificate.")
+
+	// Authorization
+	flags.StringVar((*string)(&c.Authorization.Mode), "authorization-mode", string(c.Authorization.Mode), ""+
+		"Authorization mode for Kubelet server. Valid options are AlwaysAllow or Webhook. "+
+		"Webhook mode uses the SubjectAccessReview API to determine authorization.")
+	flags.DurationVar(&c.Authorization.Webhook.CacheAuthorizedTTL.Duration, "authorization-webhook-cache-authorized-ttl", c.Authorization.Webhook.CacheAuthorizedTTL.Duration, ""+
+		"The duration to cache 'authorized' responses from the webhook authorizer.")
+	flags.DurationVar(&c.Authorization.Webhook.CacheUnauthorizedTTL.Duration, "authorization-webhook-cache-unauthorized-ttl", c.Authorization.Webhook.CacheUnauthorizedTTL.Duration, ""+
+		"The duration to cache 'unauthorized' responses from the webhook authorizer.")
+
 	flagset := flag.NewFlagSet("klog", flag.PanicOnError)
 	klog.InitFlags(flagset)
 	flagset.VisitAll(func(f *flag.Flag) {
