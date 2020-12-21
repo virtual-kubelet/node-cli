@@ -18,6 +18,9 @@ import (
 	"github.com/virtual-kubelet/node-cli/provider"
 	"github.com/virtual-kubelet/node-cli/provider/mock"
 	"gotest.tools/assert"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
+	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 )
 
 var (
@@ -173,6 +176,12 @@ BXlHRpas7mXHQPmS8Y1ElUeBSFCRLdAMLoNLJ8SYv+CrYl/xtWNJGJS4q9n4wral
 `)
 )
 
+var (
+	calledAuthenticate = false
+	calledAuthorize    = false
+	calledAttributes   = false
+)
+
 func TestHTTPServer(t *testing.T) {
 	pCfg := mock.Config{
 		CPU:    "1",
@@ -215,6 +224,36 @@ func TestHTTPServer(t *testing.T) {
 				Certificates: []tls.Certificate{clientAuthCert},
 				RootCAs:      clientCAPool,
 			},
+		},
+	}
+
+	authorizedFakeFilter := &fakeAuth{
+		authenticateFunc: func(req *http.Request) (*authenticator.Response, bool, error) {
+			calledAuthenticate = true
+			return &authenticator.Response{User: &user.DefaultInfo{Name: "test"}}, true, nil
+		},
+		attributesFunc: func(u user.Info, req *http.Request) authorizer.Attributes {
+			calledAttributes = true
+			return &authorizer.AttributesRecord{User: u}
+		},
+		authorizeFunc: func(a authorizer.Attributes) (decision authorizer.Decision, reason string, err error) {
+			calledAuthorize = true
+			return authorizer.DecisionAllow, "", nil
+		},
+	}
+
+	unauthorizedFakeFilter := &fakeAuth{
+		authenticateFunc: func(req *http.Request) (*authenticator.Response, bool, error) {
+			calledAuthenticate = true
+			return &authenticator.Response{User: &user.DefaultInfo{Name: "test"}}, true, nil
+		},
+		attributesFunc: func(u user.Info, req *http.Request) authorizer.Attributes {
+			calledAttributes = true
+			return &authorizer.AttributesRecord{User: u}
+		},
+		authorizeFunc: func(a authorizer.Attributes) (decision authorizer.Decision, reason string, err error) {
+			calledAuthorize = true
+			return authorizer.DecisionDeny, "", nil
 		},
 	}
 
@@ -313,6 +352,62 @@ func TestHTTPServer(t *testing.T) {
 			})
 		})
 	})
+
+	t.Run("webhook auth middleware", func(t *testing.T) {
+		cfg := &apiServerConfig{
+			KeyPath:    key,
+			CertPath:   cert,
+			CACertPath: clientCA,
+		}
+		cfg.AuthWebhookEnabled = true
+
+		type testCase struct {
+			name           string
+			authClient     *http.Client
+			authWebhook    *fakeAuth
+			expectedStatus int
+		}
+
+		for _, c := range []testCase{
+			{
+				name:           "unauthenticated client and token auth forbidden",
+				authClient:     unauthenticatedClient,
+				authWebhook:    unauthorizedFakeFilter,
+				expectedStatus: http.StatusForbidden,
+			},
+			{
+				name:           "unauthenticated client but token auth pass",
+				authClient:     unauthenticatedClient,
+				authWebhook:    authorizedFakeFilter,
+				expectedStatus: http.StatusOK,
+			},
+			{
+				name:           "authenticated client but token auth forbidden",
+				authClient:     unauthenticatedClient,
+				authWebhook:    unauthorizedFakeFilter,
+				expectedStatus: http.StatusForbidden,
+			},
+			{
+				name:           "authenticated client and token auth pass",
+				authClient:     unauthenticatedClient,
+				authWebhook:    authorizedFakeFilter,
+				expectedStatus: http.StatusOK,
+			},
+		} {
+			cfg.Auth = c.authWebhook
+
+			closer := getTestHTTPServer(t, cfg, p)
+			assert.NilError(t, err, fmt.Sprintf("case %q FAILED", c.name))
+			defer closer()
+
+			resp, err := c.authClient.Get(fmt.Sprintf("https://%s/stats/summary", cfg.Addr))
+			assert.NilError(t, err, fmt.Sprintf("case %q FAILED", c.name))
+			assert.Equal(t, resp.StatusCode, c.expectedStatus, resp.Status, fmt.Sprintf("case %q FAILED", c.name))
+			assert.Assert(t, calledAuthenticate, fmt.Sprintf("case %q FAILED", c.name))
+			assert.Assert(t, calledAttributes, fmt.Sprintf("case %q FAILED", c.name))
+			assert.Assert(t, calledAuthorize, fmt.Sprintf("case %q FAILED", c.name))
+		}
+	})
 }
 
 func getTestHTTPServer(t *testing.T, cfg *apiServerConfig, p provider.Provider) func() {
@@ -356,4 +451,20 @@ func writeTestCerts(t *testing.T, dir string) {
 
 	err = ioutil.WriteFile(filepath.Join(dir, "client-ca.pem"), testCACert, 0600)
 	assert.NilError(t, err)
+}
+
+type fakeAuth struct {
+	authenticateFunc func(*http.Request) (*authenticator.Response, bool, error)
+	attributesFunc   func(user.Info, *http.Request) authorizer.Attributes
+	authorizeFunc    func(authorizer.Attributes) (authorized authorizer.Decision, reason string, err error)
+}
+
+func (f *fakeAuth) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
+	return f.authenticateFunc(req)
+}
+func (f *fakeAuth) GetRequestAttributes(u user.Info, req *http.Request) authorizer.Attributes {
+	return f.attributesFunc(u, req)
+}
+func (f *fakeAuth) Authorize(ctx context.Context, a authorizer.Attributes) (authorized authorizer.Decision, reason string, err error) {
+	return f.authorizeFunc(a)
 }
