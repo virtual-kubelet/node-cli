@@ -59,15 +59,14 @@ This allows users to schedule kubernetes workloads on nodes that aren't running 
 		},
 	}
 
-	applyLegacyDefaults(o)
+	applyDefaults(o)
 
 	installFlags(cmd.Flags(), o)
 	return cmd
 }
 
-// This is used to construct the baseline default KubeletConfiguration
-// before the first round of flag parsing.
-func applyLegacyDefaults(o *opts.Opts) {
+// This is used to construct the baseline default config before the first round of flag parsing.
+func applyDefaults(o *opts.Opts) {
 	// --anonymous-auth
 	o.Authentication.Anonymous.Enabled = true
 	// --authentication-token-webhook
@@ -143,7 +142,8 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 		return err
 	}
 
-	auth, _ /*?*/, err := BuildAuth(types.NodeName(c.NodeName), client, *c)
+	// TODO(guwe): handle CA rotate?
+	auth, _, err := BuildAuth(types.NodeName(c.NodeName), client, *c)
 	apiConfig.Auth = auth
 
 	initConfig := provider.InitConfig{

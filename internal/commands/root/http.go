@@ -24,7 +24,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -50,7 +49,7 @@ var AcceptedCiphers = []uint16{
 	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 }
 
-func loadTLSConfig(ctx context.Context, certPath, keyPath, caPath string, allowUnauthenticatedClients bool) (*tls.Config, error) {
+func loadTLSConfig(ctx context.Context, certPath, keyPath, caPath string, allowUnauthenticatedClients, authWebhookEnabled bool) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "error loading tls certs")
@@ -63,6 +62,9 @@ func loadTLSConfig(ctx context.Context, certPath, keyPath, caPath string, allowU
 
 	if allowUnauthenticatedClients {
 		clientAuth = tls.NoClientCert
+	}
+	if authWebhookEnabled {
+		clientAuth = tls.RequestClientCert
 	}
 
 	if caPath != "" {
@@ -106,7 +108,7 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 			WithField("caPath", cfg.CACertPath).
 			Error("TLS certificates not provided, not setting up pod http server")
 	} else {
-		tlsCfg, err := loadTLSConfig(ctx, cfg.CertPath, cfg.KeyPath, cfg.CACertPath, cfg.AllowUnauthenticatedClients)
+		tlsCfg, err := loadTLSConfig(ctx, cfg.CertPath, cfg.KeyPath, cfg.CACertPath, cfg.AllowUnauthenticatedClients, cfg.AuthWebhookEnabled)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +131,7 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 			podRoutes.GetStatsSummary = mp.GetStatsSummary
 		}
 
-		if cfg.Auth != nil && cfg.EnableTokenAuth {
+		if cfg.Auth != nil && cfg.AuthWebhookEnabled {
 			m := NewKubeletKubeletAuthMiddleware(ctx, cfg.Auth)
 			podRoutes.Middlewares = []api.Middleware{m.AuthFilter}
 		}
@@ -190,8 +192,8 @@ type apiServerConfig struct {
 	StreamCreationTimeout       time.Duration
 	AllowUnauthenticatedClients bool
 
-	Auth            kubeletserver.AuthInterface
-	EnableTokenAuth bool
+	Auth               kubeletserver.AuthInterface
+	AuthWebhookEnabled bool
 }
 
 func getAPIConfig(c *opts.Opts) (*apiServerConfig, error) {
@@ -200,12 +202,7 @@ func getAPIConfig(c *opts.Opts) (*apiServerConfig, error) {
 		KeyPath:  os.Getenv("APISERVER_KEY_LOCATION"),
 	}
 
-	// For testing only, adding a toggle to turn on/off auth token
-	EnableTokenAuth := os.Getenv("EnableTokenAuth")
-	if strings.EqualFold(EnableTokenAuth, "true") {
-		config.EnableTokenAuth = true
-	}
-
+	config.AuthWebhookEnabled = c.Authentication.Webhook.Enabled
 	config.Addr = fmt.Sprintf(":%d", c.ListenPort)
 	config.MetricsAddr = c.MetricsAddr
 	config.StreamIdleTimeout = c.StreamIdleTimeout
