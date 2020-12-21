@@ -142,9 +142,14 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 		return err
 	}
 
-	// TODO(guwe): handle CA rotate?
-	auth, _, err := BuildAuth(types.NodeName(c.NodeName), client, *c)
-	apiConfig.Auth = auth
+	if apiConfig.AuthWebhookEnabled {
+		// TODO(guwe): handle CA rotate?
+		auth, _, err := BuildAuth(types.NodeName(c.NodeName), client, *c)
+		if err != nil {
+			return err
+		}
+		apiConfig.Auth = auth
+	}
 
 	initConfig := provider.InitConfig{
 		ConfigPath:        c.ProviderConfigPath,
