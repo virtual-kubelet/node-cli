@@ -35,7 +35,7 @@ import (
 	"github.com/virtual-kubelet/node-cli/opts"
 )
 
-// BuildAuth creates an authenticator, an authorizer, and a matching authorizer attributes getter compatible with the kubelet's needs
+// BuildAuth creates an authenticator, an authorizer, and a matching authorizer attributes getter compatible with the virtual-kubelet's needs
 func BuildAuth(nodeName types.NodeName, client clientset.Interface, config opts.Opts) (kubeletserver.AuthInterface, func(<-chan struct{}), error) {
 	// Get clients, if provided
 	var (
@@ -62,7 +62,7 @@ func BuildAuth(nodeName types.NodeName, client clientset.Interface, config opts.
 	return kubeletserver.NewKubeletAuth(authenticator, attributes, authorizer), runAuthenticatorCAReload, nil
 }
 
-// BuildAuthn creates an authenticator compatible with the kubelet's needs
+// BuildAuthn creates an authenticator compatible with the virtual-kubelet's needs
 func BuildAuthn(client authenticationclient.TokenReviewInterface, authn kubeletconfig.KubeletAuthentication) (authenticator.Request, func(<-chan struct{}), error) {
 	var dynamicCAContentFromFile *dynamiccertificates.DynamicFileCAContent
 	var err error
@@ -98,7 +98,7 @@ func BuildAuthn(client authenticationclient.TokenReviewInterface, authn kubeletc
 	}, err
 }
 
-// BuildAuthz creates an authorizer compatible with the kubelet's needs
+// BuildAuthz creates an authorizer compatible with the virtual-kubelet's needs
 func BuildAuthz(client authorizationclient.SubjectAccessReviewInterface, authz kubeletconfig.KubeletAuthorization) (authorizer.Authorizer, error) {
 	switch authz.Mode {
 	case kubeletconfig.KubeletAuthorizationModeAlwaysAllow:

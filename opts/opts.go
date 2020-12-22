@@ -106,9 +106,9 @@ type Opts struct {
 
 	Version string
 
-	// authentication specifies how requests to the Kubelet's server are authenticated
+	// authentication specifies how requests to the virtual-kubelet's server are authenticated
 	Authentication kubeletconfig.KubeletAuthentication
-	// authorization specifies how requests to the Kubelet's server are authorized
+	// authorization specifies how requests to the virtual-kubelet's server are authorized
 	Authorization kubeletconfig.KubeletAuthorization
 }
 
