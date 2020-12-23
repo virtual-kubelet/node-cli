@@ -93,6 +93,9 @@ func BuildAuth(nodeName types.NodeName, client clientset.Interface, config opts.
 func BuildAuthn(client authenticationclient.TokenReviewInterface, authn opts.Authentication) (authenticator.Request, func(<-chan struct{}), error) {
 	var dynamicCAContentFromFile *dynamiccertificates.DynamicFileCAContent
 	var err error
+	if len(authn.X509.ClientCAFile) == 0 {
+		return nil, nil, errors.New("no ca file is provided, cannot use webhook authorization")
+	}
 	if len(authn.X509.ClientCAFile) > 0 {
 		dynamicCAContentFromFile, err = dynamiccertificates.NewDynamicCAContentFromFile("client-ca-bundle", authn.X509.ClientCAFile)
 		if err != nil {
