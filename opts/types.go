@@ -35,18 +35,8 @@ type WebhookAuthorization struct {
 
 // Authentication holds the Kubetlet Authentication setttings.
 type Authentication struct {
-	// x509 contains settings related to x509 client certificate authentication
-	X509 X509Authentication
 	// webhook contains settings related to webhook bearer token authentication
 	Webhook WebhookAuthentication
-}
-
-// X509Authentication contains settings related to x509 client certificate authentication
-type X509Authentication struct {
-	// clientCAFile is the path to a PEM-encoded certificate bundle. If set, any request presenting a client certificate
-	// signed by one of the authorities in the bundle is authenticated with a username corresponding to the CommonName,
-	// and groups corresponding to the Organization in the client certificate.
-	ClientCAFile string
 }
 
 // WebhookAuthentication contains settings related to webhook authentication

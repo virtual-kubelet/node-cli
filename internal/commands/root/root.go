@@ -60,17 +60,12 @@ This allows users to schedule kubernetes workloads on nodes that aren't running 
 
 	applyDefaults(o)
 	installFlags(cmd.Flags(), o)
-	backfillOps(o)
 
 	return cmd
 }
 
 func applyDefaults(o *opts.Opts) {
 	o.Authentication.Webhook.Enabled = false
-}
-
-func backfillOps(o *opts.Opts) {
-	o.Authentication.X509.ClientCAFile = o.ClientCACert
 }
 
 func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error {

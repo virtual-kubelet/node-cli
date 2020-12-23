@@ -74,7 +74,7 @@ func BuildAuth(nodeName types.NodeName, client clientset.Interface, config opts.
 		sarClient = client.AuthorizationV1().SubjectAccessReviews()
 	}
 
-	authenticator, runAuthenticatorCAReload, err := BuildAuthn(tokenClient, config.Authentication)
+	authenticator, runAuthenticatorCAReload, err := BuildAuthn(tokenClient, config.Authentication, config.ClientCACert)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -90,17 +90,15 @@ func BuildAuth(nodeName types.NodeName, client clientset.Interface, config opts.
 }
 
 // BuildAuthn creates an authenticator compatible with the virtual-kubelet's needs
-func BuildAuthn(client authenticationclient.TokenReviewInterface, authn opts.Authentication) (authenticator.Request, func(<-chan struct{}), error) {
+func BuildAuthn(client authenticationclient.TokenReviewInterface, authn opts.Authentication, clientCACert string) (authenticator.Request, func(<-chan struct{}), error) {
 	var dynamicCAContentFromFile *dynamiccertificates.DynamicFileCAContent
 	var err error
-	if len(authn.X509.ClientCAFile) == 0 {
+	if len(clientCACert) == 0 {
 		return nil, nil, errors.New("no ca file is provided, cannot use webhook authorization")
 	}
-	if len(authn.X509.ClientCAFile) > 0 {
-		dynamicCAContentFromFile, err = dynamiccertificates.NewDynamicCAContentFromFile("client-ca-bundle", authn.X509.ClientCAFile)
-		if err != nil {
-			return nil, nil, err
-		}
+	dynamicCAContentFromFile, err = dynamiccertificates.NewDynamicCAContentFromFile("client-ca-bundle", clientCACert)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	authenticatorConfig := authenticatorfactory.DelegatingAuthenticatorConfig{
