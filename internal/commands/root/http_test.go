@@ -394,18 +394,20 @@ func TestHTTPServer(t *testing.T) {
 				expectedStatus: http.StatusOK,
 			},
 		} {
-			cfg.Auth = c.authWebhook
+			t.Run(c.name, func(t *testing.T) {
+				cfg.Auth = c.authWebhook
 
-			closer := getTestHTTPServer(t, cfg, p)
-			assert.NilError(t, err, fmt.Sprintf("case %q FAILED", c.name))
-			defer closer()
+				closer := getTestHTTPServer(t, cfg, p)
+				assert.NilError(t, err)
+				defer closer()
 
-			resp, err := c.authClient.Get(fmt.Sprintf("https://%s/stats/summary", cfg.Addr))
-			assert.NilError(t, err, fmt.Sprintf("case %q FAILED", c.name))
-			assert.Equal(t, resp.StatusCode, c.expectedStatus, resp.Status, fmt.Sprintf("case %q FAILED", c.name))
-			assert.Assert(t, calledAuthenticate, fmt.Sprintf("case %q FAILED", c.name))
-			assert.Assert(t, calledAttributes, fmt.Sprintf("case %q FAILED", c.name))
-			assert.Assert(t, calledAuthorize, fmt.Sprintf("case %q FAILED", c.name))
+				resp, err := c.authClient.Get(fmt.Sprintf("https://%s/stats/summary", cfg.Addr))
+				assert.NilError(t, err)
+				assert.Equal(t, resp.StatusCode, c.expectedStatus, resp.Status)
+				assert.Assert(t, calledAuthenticate)
+				assert.Assert(t, calledAttributes)
+				assert.Assert(t, calledAuthorize)
+			})
 		}
 	})
 }

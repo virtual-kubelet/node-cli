@@ -29,19 +29,19 @@ type AuthMiddleware interface {
 	AuthFilter(h http.HandlerFunc) http.HandlerFunc
 }
 
-// KubeletAuthMiddleware is the struct to implement middleware
-type KubeletAuthMiddleware struct {
+// VirtualKubeletAuthMiddleware is the struct to implement middleware
+type VirtualKubeletAuthMiddleware struct {
 	auth kubeletserver.AuthInterface
 	ctx  context.Context
 }
 
-// NewKubeletKubeletAuthMiddleware initiate an instance for AuthMiddleware
-func NewKubeletKubeletAuthMiddleware(ctx context.Context, auth kubeletserver.AuthInterface) AuthMiddleware {
-	return KubeletAuthMiddleware{auth: auth, ctx: ctx}
+// NewVirtualKubeletAuthMiddleware initiate an instance for AuthMiddleware
+func NewVirtualKubeletAuthMiddleware(ctx context.Context, auth kubeletserver.AuthInterface) AuthMiddleware {
+	return VirtualKubeletAuthMiddleware{auth: auth, ctx: ctx}
 }
 
 // AuthFilter is the middleware to authenticate & authorize the request
-func (m KubeletAuthMiddleware) AuthFilter(h http.HandlerFunc) http.HandlerFunc {
+func (m VirtualKubeletAuthMiddleware) AuthFilter(h http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		info, ok, err := m.auth.AuthenticateRequest(req)
 		if err != nil {
