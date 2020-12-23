@@ -31,8 +31,6 @@ import (
 	"github.com/virtual-kubelet/node-cli/provider"
 	"github.com/virtual-kubelet/virtual-kubelet/log"
 	"github.com/virtual-kubelet/virtual-kubelet/node/api"
-
-	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 )
 
 // AcceptedCiphers is the list of accepted TLS ciphers, with known weak ciphers elided
@@ -192,7 +190,7 @@ type apiServerConfig struct {
 	StreamCreationTimeout       time.Duration
 	AllowUnauthenticatedClients bool
 
-	Auth               kubeletserver.AuthInterface
+	Auth               AuthInterface
 	AuthWebhookEnabled bool
 }
 

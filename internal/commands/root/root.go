@@ -40,7 +40,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
-	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -66,14 +65,8 @@ This allows users to schedule kubernetes workloads on nodes that aren't running 
 	return cmd
 }
 
-// This is used to construct the baseline default config before the first round of flag parsing.
 func applyDefaults(o *opts.Opts) {
-	// --anonymous-auth
-	o.Authentication.Anonymous.Enabled = true
-	// --authentication-token-webhook
 	o.Authentication.Webhook.Enabled = false
-	// --authorization-mode
-	o.Authorization.Mode = kubeletconfig.KubeletAuthorizationModeAlwaysAllow
 }
 
 func backfillOps(o *opts.Opts) {

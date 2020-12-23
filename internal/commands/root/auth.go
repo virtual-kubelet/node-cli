@@ -16,12 +16,14 @@ package root
 
 import (
 	"errors"
-	"fmt"
+	"net/http"
 	"reflect"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
+	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	"k8s.io/apiserver/pkg/server/dynamiccertificates"
@@ -29,14 +31,39 @@ import (
 	authenticationclient "k8s.io/client-go/kubernetes/typed/authentication/v1"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 
-	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
-	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
-
 	"github.com/virtual-kubelet/node-cli/opts"
 )
 
+const (
+	metricsPath = "/metrics"
+	statsPath   = "/stats/"
+	logsPath    = "/logs/"
+)
+
+// AuthInterface contains all methods required by the auth filters
+type AuthInterface interface {
+	authenticator.Request
+	authorizer.RequestAttributesGetter
+	authorizer.Authorizer
+}
+
+// VirtualKubeletAuth implements AuthInterface
+type VirtualKubeletAuth struct {
+	// authenticator identifies the user for requests to the Kubelet API
+	authenticator.Request
+	// authorizerAttributeGetter builds authorization.Attributes for a request to the Kubelet API
+	authorizer.RequestAttributesGetter
+	// authorizer determines whether a given authorization.Attributes is allowed
+	authorizer.Authorizer
+}
+
+// NewVirtualKubeletAuth returns a AuthInterface composed of the given authenticator, attribute getter, and authorizer
+func NewVirtualKubeletAuth(authenticator authenticator.Request, authorizerAttributeGetter authorizer.RequestAttributesGetter, authorizer authorizer.Authorizer) AuthInterface {
+	return &VirtualKubeletAuth{authenticator, authorizerAttributeGetter, authorizer}
+}
+
 // BuildAuth creates an authenticator, an authorizer, and a matching authorizer attributes getter compatible with the virtual-kubelet's needs
-func BuildAuth(nodeName types.NodeName, client clientset.Interface, config opts.Opts) (kubeletserver.AuthInterface, func(<-chan struct{}), error) {
+func BuildAuth(nodeName types.NodeName, client clientset.Interface, config opts.Opts) (AuthInterface, func(<-chan struct{}), error) {
 	// Get clients, if provided
 	var (
 		tokenClient authenticationclient.TokenReviewInterface
@@ -52,18 +79,18 @@ func BuildAuth(nodeName types.NodeName, client clientset.Interface, config opts.
 		return nil, nil, err
 	}
 
-	attributes := kubeletserver.NewNodeAuthorizerAttributesGetter(nodeName)
+	attributes := NewNodeAuthorizerAttributesGetter(nodeName)
 
 	authorizer, err := BuildAuthz(sarClient, config.Authorization)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return kubeletserver.NewKubeletAuth(authenticator, attributes, authorizer), runAuthenticatorCAReload, nil
+	return NewVirtualKubeletAuth(authenticator, attributes, authorizer), runAuthenticatorCAReload, nil
 }
 
 // BuildAuthn creates an authenticator compatible with the virtual-kubelet's needs
-func BuildAuthn(client authenticationclient.TokenReviewInterface, authn kubeletconfig.KubeletAuthentication) (authenticator.Request, func(<-chan struct{}), error) {
+func BuildAuthn(client authenticationclient.TokenReviewInterface, authn opts.Authentication) (authenticator.Request, func(<-chan struct{}), error) {
 	var dynamicCAContentFromFile *dynamiccertificates.DynamicFileCAContent
 	var err error
 	if len(authn.X509.ClientCAFile) > 0 {
@@ -74,7 +101,7 @@ func BuildAuthn(client authenticationclient.TokenReviewInterface, authn kubeletc
 	}
 
 	authenticatorConfig := authenticatorfactory.DelegatingAuthenticatorConfig{
-		Anonymous:                          authn.Anonymous.Enabled,
+		Anonymous:                          false,
 		CacheTTL:                           authn.Webhook.CacheTTL.Duration,
 		ClientCertificateCAContentProvider: dynamicCAContentFromFile,
 	}
@@ -99,27 +126,72 @@ func BuildAuthn(client authenticationclient.TokenReviewInterface, authn kubeletc
 }
 
 // BuildAuthz creates an authorizer compatible with the virtual-kubelet's needs
-func BuildAuthz(client authorizationclient.SubjectAccessReviewInterface, authz kubeletconfig.KubeletAuthorization) (authorizer.Authorizer, error) {
-	switch authz.Mode {
-	case kubeletconfig.KubeletAuthorizationModeAlwaysAllow:
-		return authorizerfactory.NewAlwaysAllowAuthorizer(), nil
-
-	case kubeletconfig.KubeletAuthorizationModeWebhook:
-		if client == nil {
-			return nil, errors.New("no client provided, cannot use webhook authorization")
-		}
-		authorizerConfig := authorizerfactory.DelegatingAuthorizerConfig{
-			SubjectAccessReviewClient: client,
-			AllowCacheTTL:             authz.Webhook.CacheAuthorizedTTL.Duration,
-			DenyCacheTTL:              authz.Webhook.CacheUnauthorizedTTL.Duration,
-		}
-		return authorizerConfig.New()
-
-	case "":
-		return nil, fmt.Errorf("no authorization mode specified")
-
-	default:
-		return nil, fmt.Errorf("unknown authorization mode %s", authz.Mode)
-
+func BuildAuthz(client authorizationclient.SubjectAccessReviewInterface, authz opts.Authorization) (authorizer.Authorizer, error) {
+	if client == nil {
+		return nil, errors.New("no client provided, cannot use webhook authorization")
 	}
+	authorizerConfig := authorizerfactory.DelegatingAuthorizerConfig{
+		SubjectAccessReviewClient: client,
+		AllowCacheTTL:             authz.Webhook.CacheAuthorizedTTL.Duration,
+		DenyCacheTTL:              authz.Webhook.CacheUnauthorizedTTL.Duration,
+	}
+	return authorizerConfig.New()
+}
+
+type nodeAuthorizerAttributesGetter struct {
+	nodeName types.NodeName
+}
+
+// NewNodeAuthorizerAttributesGetter creates a new authorizer.RequestAttributesGetter for the node.
+func NewNodeAuthorizerAttributesGetter(nodeName types.NodeName) authorizer.RequestAttributesGetter {
+	return nodeAuthorizerAttributesGetter{nodeName: nodeName}
+}
+
+// GetRequestAttributes populates authorizer attributes for the requests to the virtual-kubelet API.
+// Default attributes are: {apiVersion=v1,verb=<http verb from request>,resource=nodes,name=<node name>,subresource=proxy}
+func (n nodeAuthorizerAttributesGetter) GetRequestAttributes(u user.Info, r *http.Request) authorizer.Attributes {
+	apiVerb := ""
+	switch r.Method {
+	case "POST":
+		apiVerb = "create"
+	case "GET":
+		apiVerb = "get"
+	case "PUT":
+		apiVerb = "update"
+	case "PATCH":
+		apiVerb = "patch"
+	case "DELETE":
+		apiVerb = "delete"
+	}
+
+	requestPath := r.URL.Path
+
+	attrs := authorizer.AttributesRecord{
+		User:            u,
+		Verb:            apiVerb,
+		Namespace:       "",
+		APIGroup:        "",
+		APIVersion:      "v1",
+		Resource:        "nodes",
+		Subresource:     "proxy",
+		Name:            string(n.nodeName),
+		ResourceRequest: true,
+		Path:            requestPath,
+	}
+
+	switch {
+	case isSubpath(requestPath, statsPath):
+		attrs.Subresource = "stats"
+	case isSubpath(requestPath, metricsPath):
+		attrs.Subresource = "metrics"
+	case isSubpath(requestPath, logsPath):
+		attrs.Subresource = "log"
+	}
+
+	return attrs
+}
+
+func isSubpath(subpath, path string) bool {
+	path = strings.TrimSuffix(path, "/")
+	return subpath == path || (strings.HasPrefix(subpath, path) && subpath[len(path)] == '/')
 }

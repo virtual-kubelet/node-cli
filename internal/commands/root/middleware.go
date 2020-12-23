@@ -21,7 +21,6 @@ import (
 
 	"github.com/virtual-kubelet/virtual-kubelet/log"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 )
 
 // AuthMiddleware contains all methods required by the auth filters
@@ -31,12 +30,12 @@ type AuthMiddleware interface {
 
 // VirtualKubeletAuthMiddleware is the struct to implement middleware
 type VirtualKubeletAuthMiddleware struct {
-	auth kubeletserver.AuthInterface
+	auth AuthInterface
 	ctx  context.Context
 }
 
 // NewVirtualKubeletAuthMiddleware initiate an instance for AuthMiddleware
-func NewVirtualKubeletAuthMiddleware(ctx context.Context, auth kubeletserver.AuthInterface) AuthMiddleware {
+func NewVirtualKubeletAuthMiddleware(ctx context.Context, auth AuthInterface) AuthMiddleware {
 	return VirtualKubeletAuthMiddleware{auth: auth, ctx: ctx}
 }
 
