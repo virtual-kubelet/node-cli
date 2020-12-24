@@ -25,7 +25,7 @@ import (
 
 // AuthMiddleware contains all methods required by the auth filters
 type AuthMiddleware interface {
-	AuthFilter(h http.HandlerFunc) http.HandlerFunc
+	AuthFilter(h http.Handler) http.Handler
 }
 
 // VirtualKubeletAuthMiddleware is the struct to implement middleware
@@ -40,7 +40,7 @@ func NewVirtualKubeletAuthMiddleware(ctx context.Context, auth AuthInterface) Au
 }
 
 // AuthFilter is the middleware to authenticate & authorize the request
-func (m VirtualKubeletAuthMiddleware) AuthFilter(h http.HandlerFunc) http.HandlerFunc {
+func (m VirtualKubeletAuthMiddleware) AuthFilter(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		info, ok, err := m.auth.AuthenticateRequest(req)
 		if err != nil {
@@ -75,6 +75,6 @@ func (m VirtualKubeletAuthMiddleware) AuthFilter(h http.HandlerFunc) http.Handle
 			return
 		}
 
-		h(resp, req)
+		h.ServeHTTP(resp, req)
 	})
 }
