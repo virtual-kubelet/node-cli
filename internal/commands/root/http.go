@@ -115,7 +115,7 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 			return nil, errors.Wrapf(err, "error setting up listener for pod http server: tlsconfig: \n%+v", tlsCfg)
 		}
 
-		mux := http.NewServeMux()
+		mux := NewServeMuxWithAuth(ctx, cfg.Auth)
 
 		podRoutes := api.PodHandlerConfig{
 			RunInContainer:        p.RunInContainer,
@@ -127,11 +127,6 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 
 		if mp, ok := p.(provider.PodMetricsProvider); ok {
 			podRoutes.GetStatsSummary = mp.GetStatsSummary
-		}
-
-		if cfg.AuthWebhookEnabled && cfg.Auth != nil {
-			m := NewVirtualKubeletAuthMiddleware(ctx, cfg.Auth)
-			podRoutes.Middlewares = []api.Middleware{m.AuthFilter}
 		}
 
 		api.AttachPodRoutes(podRoutes, mux, true)
