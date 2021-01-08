@@ -23,12 +23,6 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 )
 
-// ServeMux contains the methods required to implement a mux that can be wrapped with auth filter
-type ServeMux interface {
-	Handle(path string, h http.Handler)
-	ServeHTTP(w http.ResponseWriter, r *http.Request)
-}
-
 // ServeMuxWithAuth implements api.ServerMux
 type ServeMuxWithAuth struct {
 	auth AuthInterface
@@ -37,9 +31,9 @@ type ServeMuxWithAuth struct {
 }
 
 // NewServeMuxWithAuth initiate an instance for ServeMuxWithAuth
-func NewServeMuxWithAuth(ctx context.Context, auth AuthInterface) ServeMux {
+func NewServeMuxWithAuth(ctx context.Context, auth AuthInterface) *ServeMuxWithAuth {
 	mux := http.NewServeMux()
-	return ServeMuxWithAuth{
+	return &ServeMuxWithAuth{
 		auth: auth,
 		ctx:  ctx,
 		mux:  mux,
@@ -47,7 +41,7 @@ func NewServeMuxWithAuth(ctx context.Context, auth AuthInterface) ServeMux {
 }
 
 // Handle enables auth filter for mux Handle
-func (s ServeMuxWithAuth) Handle(path string, h http.Handler) {
+func (s *ServeMuxWithAuth) Handle(path string, h http.Handler) {
 	if s.auth == nil {
 		s.mux.Handle(path, h)
 	} else {
@@ -55,7 +49,7 @@ func (s ServeMuxWithAuth) Handle(path string, h http.Handler) {
 	}
 }
 
-func (s ServeMuxWithAuth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *ServeMuxWithAuth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 
