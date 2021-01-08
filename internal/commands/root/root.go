@@ -40,6 +40,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
+
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // NewCommand creates a new top-level command.
@@ -56,8 +58,14 @@ This allows users to schedule kubernetes workloads on nodes that aren't running 
 		},
 	}
 
+	applyDefaults(o)
 	installFlags(cmd.Flags(), o)
+
 	return cmd
+}
+
+func applyDefaults(o *opts.Opts) {
+	o.Authentication.Webhook.Enabled = false
 }
 
 func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error {
@@ -125,6 +133,15 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 	apiConfig, err := getAPIConfig(c)
 	if err != nil {
 		return err
+	}
+
+	if apiConfig.AuthWebhookEnabled {
+		// TODO(guwe): handle CA rotate?
+		auth, _, err := BuildAuth(types.NodeName(c.NodeName), client, *c)
+		if err != nil {
+			return err
+		}
+		apiConfig.Auth = auth
 	}
 
 	initConfig := provider.InitConfig{

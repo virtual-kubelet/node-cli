@@ -47,7 +47,7 @@ var AcceptedCiphers = []uint16{
 	tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 }
 
-func loadTLSConfig(certPath, keyPath, caPath string, allowUnauthenticatedClients bool) (*tls.Config, error) {
+func loadTLSConfig(ctx context.Context, certPath, keyPath, caPath string, allowUnauthenticatedClients, authWebhookEnabled bool) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "error loading tls certs")
@@ -60,6 +60,9 @@ func loadTLSConfig(certPath, keyPath, caPath string, allowUnauthenticatedClients
 
 	if allowUnauthenticatedClients {
 		clientAuth = tls.NoClientCert
+	}
+	if authWebhookEnabled {
+		clientAuth = tls.RequestClientCert
 	}
 
 	if caPath != "" {
@@ -103,7 +106,7 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 			WithField("caPath", cfg.CACertPath).
 			Error("TLS certificates not provided, not setting up pod http server")
 	} else {
-		tlsCfg, err := loadTLSConfig(cfg.CertPath, cfg.KeyPath, cfg.CACertPath, cfg.AllowUnauthenticatedClients)
+		tlsCfg, err := loadTLSConfig(ctx, cfg.CertPath, cfg.KeyPath, cfg.CACertPath, cfg.AllowUnauthenticatedClients, cfg.AuthWebhookEnabled)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +115,7 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 			return nil, errors.Wrapf(err, "error setting up listener for pod http server: tlsconfig: \n%+v", tlsCfg)
 		}
 
-		mux := http.NewServeMux()
+		mux := NewServeMuxWithAuth(ctx, cfg.Auth)
 
 		podRoutes := api.PodHandlerConfig{
 			RunInContainer:        p.RunInContainer,
@@ -125,6 +128,7 @@ func setupHTTPServer(ctx context.Context, p provider.Provider, cfg *apiServerCon
 		if mp, ok := p.(provider.PodMetricsProvider); ok {
 			podRoutes.GetStatsSummary = mp.GetStatsSummary
 		}
+
 		api.AttachPodRoutes(podRoutes, mux, true)
 
 		s := &http.Server{
@@ -180,6 +184,9 @@ type apiServerConfig struct {
 	StreamIdleTimeout           time.Duration
 	StreamCreationTimeout       time.Duration
 	AllowUnauthenticatedClients bool
+
+	Auth               AuthInterface
+	AuthWebhookEnabled bool
 }
 
 func getAPIConfig(c *opts.Opts) (*apiServerConfig, error) {
@@ -188,6 +195,7 @@ func getAPIConfig(c *opts.Opts) (*apiServerConfig, error) {
 		KeyPath:  os.Getenv("APISERVER_KEY_LOCATION"),
 	}
 
+	config.AuthWebhookEnabled = c.Authentication.Webhook.Enabled
 	config.Addr = fmt.Sprintf(":%d", c.ListenPort)
 	config.MetricsAddr = c.MetricsAddr
 	config.StreamIdleTimeout = c.StreamIdleTimeout

@@ -15,6 +15,7 @@ require (
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.18.4
 	k8s.io/apimachinery v0.18.4
+	k8s.io/apiserver v0.18.4
 	k8s.io/client-go v0.18.4
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20200410145947-bcb3869e6f29 // indirect

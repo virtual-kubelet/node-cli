@@ -103,6 +103,11 @@ type Opts struct {
 	RateLimiter workqueue.RateLimiter
 
 	Version string
+
+	// authentication specifies how requests to the virtual-kubelet's server are authenticated
+	Authentication Authentication
+	// authorization specifies how requests to the virtual-kubelet's server are authorized
+	Authorization Authorization
 }
 
 // FromEnv sets default options for unset values on the passed in option struct.
