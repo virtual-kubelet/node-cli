@@ -118,8 +118,15 @@ func runRootCommandWithProviderAndClient(ctx context.Context, pInit provider.Ini
 	secretInformer := scmInformerFactory.Core().V1().Secrets()
 	configMapInformer := scmInformerFactory.Core().V1().ConfigMaps()
 	serviceInformer := scmInformerFactory.Core().V1().Services()
+	pvcInformer := scmInformerFactory.Core().V1().PersistentVolumeClaims()
+	pvInformer := scmInformerFactory.Core().V1().PersistentVolumes()
 
-	rm, err := manager.NewResourceManager(podInformer.Lister(), secretInformer.Lister(), configMapInformer.Lister(), serviceInformer.Lister())
+	rm, err := manager.NewResourceManager(podInformer.Lister(),
+		secretInformer.Lister(),
+		configMapInformer.Lister(),
+		serviceInformer.Lister(),
+		pvcInformer.Lister(),
+		pvInformer.Lister())
 	if err != nil {
 		return errors.Wrap(err, "could not create resource manager")
 	}

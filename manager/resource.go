@@ -28,15 +28,24 @@ type ResourceManager struct {
 	secretLister    corev1listers.SecretLister
 	configMapLister corev1listers.ConfigMapLister
 	serviceLister   corev1listers.ServiceLister
+	pvcLister       corev1listers.PersistentVolumeClaimLister
+	pvLister        corev1listers.PersistentVolumeLister
 }
 
 // NewResourceManager returns a ResourceManager with the internal maps initialized.
-func NewResourceManager(podLister corev1listers.PodLister, secretLister corev1listers.SecretLister, configMapLister corev1listers.ConfigMapLister, serviceLister corev1listers.ServiceLister) (*ResourceManager, error) {
+func NewResourceManager(podLister corev1listers.PodLister,
+	secretLister corev1listers.SecretLister,
+	configMapLister corev1listers.ConfigMapLister,
+	serviceLister corev1listers.ServiceLister,
+	pvcLister corev1listers.PersistentVolumeClaimLister,
+	pvLister corev1listers.PersistentVolumeLister) (*ResourceManager, error) {
 	rm := ResourceManager{
 		podLister:       podLister,
 		secretLister:    secretLister,
 		configMapLister: configMapLister,
 		serviceLister:   serviceLister,
+		pvcLister:       pvcLister,
+		pvLister:        pvLister,
 	}
 	return &rm, nil
 }
@@ -64,4 +73,14 @@ func (rm *ResourceManager) GetSecret(name, namespace string) (*v1.Secret, error)
 // ListServices retrieves the list of services from Kubernetes.
 func (rm *ResourceManager) ListServices() ([]*v1.Service, error) {
 	return rm.serviceLister.List(labels.Everything())
+}
+
+// GetPersistentVolumeClaim retrieves the specified pvc from Kubernetes
+func (rm *ResourceManager) GetPersistentVolumeClaim(name, namespace string) (*v1.PersistentVolumeClaim, error) {
+	return rm.pvcLister.PersistentVolumeClaims(namespace).Get(name)
+}
+
+// GetPersistentVolume retrieves the specified pv from Kubernetes
+func (rm *ResourceManager) GetPersistentVolume(name string) (*v1.PersistentVolume, error) {
+	return rm.pvLister.Get(name)
 }
