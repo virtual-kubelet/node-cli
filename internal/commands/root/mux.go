@@ -58,14 +58,14 @@ func (s ServeMuxWithAuth) authHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		info, ok, err := s.auth.AuthenticateRequest(req)
 		if err != nil {
-			log.G(s.ctx).Infof("Unauthorized, err: %s", err)
+			log.G(s.ctx).Infof("Unauthorized, err: %s, RequestURI:%s, UserAgent:%s", err, req.RequestURI, req.UserAgent())
 			resp.WriteHeader(http.StatusUnauthorized)
 			resp.Write([]byte("Unauthorized"))
 
 			return
 		}
 		if !ok {
-			log.G(s.ctx).Infof("Unauthorized, ok: %t", ok)
+			log.G(s.ctx).Infof("Unauthorized, ok: %t, RequestURI:%s, UserAgent:%s", ok, req.RequestURI, req.UserAgent())
 			resp.WriteHeader(http.StatusUnauthorized)
 			resp.Write([]byte("Unauthorized"))
 
