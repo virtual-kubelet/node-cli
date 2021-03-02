@@ -17,7 +17,6 @@ func TestRunRootCommand(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	opts := opts.New()
-
 	providerInitFunc := func(cfg provider.InitConfig) (provider.Provider, error) {
 		mockConfig := mock.Config{
 			CPU:    "1",
