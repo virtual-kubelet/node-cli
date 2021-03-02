@@ -99,8 +99,13 @@ type Opts struct {
 	KubeAPIQPS int32
 	// KubeAPIBurst is the burst to allow while talking with kubernetes apiserver
 	KubeAPIBurst int32
-	// RateLimiter defines the rate limit of work queue used in PodController
-	RateLimiter workqueue.RateLimiter
+
+	// SyncPodsFromKubernetesRateLimiter defines the rate limit for the SyncPodsFromKubernetes queue
+	SyncPodsFromKubernetesRateLimiter workqueue.RateLimiter
+	// DeletePodsFromKubernetesRateLimiter defines the rate limit for the DeletePodsFromKubernetesRateLimiter queue
+	DeletePodsFromKubernetesRateLimiter workqueue.RateLimiter
+	// SyncPodStatusFromProviderRateLimiter defines the rate limit for the SyncPodStatusFromProviderRateLimiter queue
+	SyncPodStatusFromProviderRateLimiter workqueue.RateLimiter
 
 	Version string
 
@@ -160,7 +165,10 @@ func setDefaults(o *Opts) {
 	o.KubeClusterDomain = DefaultKubeClusterDomain
 	o.StreamIdleTimeout = DefaultStreamIdleTimeout
 	o.StreamCreationTimeout = DefaultStreamCreationTimeout
-	o.RateLimiter = workqueue.DefaultControllerRateLimiter()
+	o.EnableNodeLease = true
+	o.SyncPodsFromKubernetesRateLimiter = workqueue.DefaultControllerRateLimiter()
+	o.DeletePodsFromKubernetesRateLimiter = workqueue.DefaultControllerRateLimiter()
+	o.SyncPodStatusFromProviderRateLimiter = workqueue.DefaultControllerRateLimiter()
 }
 
 func getEnv(key, defaultValue string) string {

@@ -4,13 +4,12 @@ go 1.12
 
 require (
 	github.com/gorilla/mux v1.7.3 // indirect
-	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/pflag v1.0.5
-	github.com/virtual-kubelet/virtual-kubelet v1.3.0
+	github.com/virtual-kubelet/virtual-kubelet v1.5.0
 	go.opencensus.io v0.21.0
 	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.18.4
