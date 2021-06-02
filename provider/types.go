@@ -5,6 +5,8 @@ const (
 	OperatingSystemLinux = "Linux"
 	// OperatingSystemWindows is the configuration value for defining Windows.
 	OperatingSystemWindows = "Windows"
+	// OperatingSystemDarwin is the configuration value for defining Darwin.
+	OperatingSystemDarwin = "Darwin"
 )
 
 type OperatingSystems map[string]bool
@@ -15,6 +17,7 @@ var (
 	ValidOperatingSystems = OperatingSystems{
 		OperatingSystemLinux:   true,
 		OperatingSystemWindows: true,
+		OperatingSystemDarwin: true,
 	}
 )
 
