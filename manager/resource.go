@@ -70,6 +70,11 @@ func (rm *ResourceManager) GetSecret(name, namespace string) (*v1.Secret, error)
 	return rm.secretLister.Secrets(namespace).Get(name)
 }
 
+// GetSecrets retrieves the all secrets of a namespace from Kubernetes.
+func (rm *ResourceManager) GetSecrets(namespace string) ([]*v1.Secret, error) {
+	return rm.secretLister.Secrets(namespace).List(labels.Everything())
+}
+
 // ListServices retrieves the list of services from Kubernetes.
 func (rm *ResourceManager) ListServices() ([]*v1.Service, error) {
 	return rm.serviceLister.List(labels.Everything())
