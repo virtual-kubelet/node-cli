@@ -13,11 +13,11 @@ import (
 	"github.com/virtual-kubelet/virtual-kubelet/errdefs"
 	"github.com/virtual-kubelet/virtual-kubelet/log"
 	"github.com/virtual-kubelet/virtual-kubelet/node/api"
+	"github.com/virtual-kubelet/virtual-kubelet/node/api/statsv1alpha1"
 	"github.com/virtual-kubelet/virtual-kubelet/trace"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	stats "k8s.io/kubernetes/pkg/kubelet/apis/stats/v1alpha1"
 )
 
 const (
@@ -452,7 +452,7 @@ func (p *ProviderV0) nodeDaemonEndpoints() v1.NodeDaemonEndpoints {
 }
 
 // GetStatsSummary returns dummy stats for all pods known by this provider.
-func (p *ProviderV0) GetStatsSummary(ctx context.Context) (*stats.Summary, error) {
+func (p *ProviderV0) GetStatsSummary(ctx context.Context) (*statsv1alpha1.Summary, error) {
 	_, span := trace.StartSpan(ctx, "GetStatsSummary")
 	defer span.End()
 
@@ -460,10 +460,10 @@ func (p *ProviderV0) GetStatsSummary(ctx context.Context) (*stats.Summary, error
 	time := metav1.NewTime(time.Now())
 
 	// Create the Summary object that will later be populated with node and pod stats.
-	res := &stats.Summary{}
+	res := &statsv1alpha1.Summary{}
 
 	// Populate the Summary object with basic node stats.
-	res.Node = stats.NodeStats{
+	res.Node = statsv1alpha1.NodeStats{
 		NodeName:  p.nodeName,
 		StartTime: metav1.NewTime(p.startTime),
 	}
@@ -478,8 +478,8 @@ func (p *ProviderV0) GetStatsSummary(ctx context.Context) (*stats.Summary, error
 		)
 
 		// Create a PodStats object to populate with pod stats.
-		pss := stats.PodStats{
-			PodRef: stats.PodReference{
+		pss := statsv1alpha1.PodStats{
+			PodRef: statsv1alpha1.PodReference{
 				Name:      pod.Name,
 				Namespace: pod.Namespace,
 				UID:       string(pod.UID),
@@ -498,14 +498,14 @@ func (p *ProviderV0) GetStatsSummary(ctx context.Context) (*stats.Summary, error
 			dummyUsageBytes := uint64(rand.Uint32())
 			totalUsageBytes += dummyUsageBytes
 			// Append a ContainerStats object containing the dummy stats to the PodStats object.
-			pss.Containers = append(pss.Containers, stats.ContainerStats{
+			pss.Containers = append(pss.Containers, statsv1alpha1.ContainerStats{
 				Name:      container.Name,
 				StartTime: pod.CreationTimestamp,
-				CPU: &stats.CPUStats{
+				CPU: &statsv1alpha1.CPUStats{
 					Time:           time,
 					UsageNanoCores: &dummyUsageNanoCores,
 				},
-				Memory: &stats.MemoryStats{
+				Memory: &statsv1alpha1.MemoryStats{
 					Time:       time,
 					UsageBytes: &dummyUsageBytes,
 				},
@@ -513,11 +513,11 @@ func (p *ProviderV0) GetStatsSummary(ctx context.Context) (*stats.Summary, error
 		}
 
 		// Populate the CPU and RAM stats for the pod and append the PodsStats object to the Summary object to be returned.
-		pss.CPU = &stats.CPUStats{
+		pss.CPU = &statsv1alpha1.CPUStats{
 			Time:           time,
 			UsageNanoCores: &totalUsageNanoCores,
 		}
-		pss.Memory = &stats.MemoryStats{
+		pss.Memory = &statsv1alpha1.MemoryStats{
 			Time:       time,
 			UsageBytes: &totalUsageBytes,
 		}
