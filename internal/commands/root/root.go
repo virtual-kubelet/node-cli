@@ -73,7 +73,7 @@ func runRootCommand(ctx context.Context, s *provider.Store, c *opts.Opts) error 
 		return errors.Errorf("provider %q not found", c.Provider)
 	}
 
-	client, err := newClient(c.KubeConfigPath, c.KubeAPIQPS, c.KubeAPIBurst)
+	client, err := newClient(ctx, c.KubeConfigPath, c.KubeAPIQPS, c.KubeAPIBurst)
 	if err != nil {
 		return err
 	}
@@ -279,7 +279,7 @@ func waitFor(ctx context.Context, time time.Duration, ready <-chan struct{}) err
 	}
 }
 
-func newClient(configPath string, qps, burst int32) (*kubernetes.Clientset, error) {
+func newClient(ctx context.Context, configPath string, qps, burst int32) (*kubernetes.Clientset, error) {
 	var config *rest.Config
 
 	// Check if the kubeConfig file exists.
@@ -291,6 +291,7 @@ func newClient(configPath string, qps, burst int32) (*kubernetes.Clientset, erro
 		}
 	} else {
 		// Set to in-cluster config.
+		log.G(ctx).Infof("configPath: %q is not exist, it will run as in-cluster.", configPath)
 		config, err = rest.InClusterConfig()
 		if err != nil {
 			return nil, errors.Wrap(err, "error building in cluster config")
