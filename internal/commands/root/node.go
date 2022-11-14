@@ -26,7 +26,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const osLabel = "beta.kubernetes.io/os"
+const betaOsLabel = "beta.kubernetes.io/os"
+const stableOsLabel = "kubernetes.io/os"
 
 // NodeFromProvider builds a kubernetes node object from a provider
 // This is a temporary solution until node stuff actually split off from the provider interface itself.
@@ -58,8 +59,11 @@ func NodeFromProvider(ctx context.Context, name string, taint *v1.Taint, p provi
 	}
 
 	p.ConfigureNode(ctx, node)
-	if _, ok := node.ObjectMeta.Labels[osLabel]; !ok {
-		node.ObjectMeta.Labels[osLabel] = strings.ToLower(node.Status.NodeInfo.OperatingSystem)
+	if _, ok := node.ObjectMeta.Labels[betaOsLabel]; !ok {
+		node.ObjectMeta.Labels[betaOsLabel] = strings.ToLower(node.Status.NodeInfo.OperatingSystem)
+	}
+	if _, ok := node.ObjectMeta.Labels[stableOsLabel]; !ok {
+		node.ObjectMeta.Labels[stableOsLabel] = strings.ToLower(node.Status.NodeInfo.OperatingSystem)
 	}
 	return node
 }
