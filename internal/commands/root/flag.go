@@ -20,7 +20,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/virtual-kubelet/node-cli/opts"
-	"k8s.io/klog"
+	klog "k8s.io/klog/v2"
 )
 
 func installFlags(flags *pflag.FlagSet, c *opts.Opts) {
@@ -69,10 +69,3 @@ func installFlags(flags *pflag.FlagSet, c *opts.Opts) {
 	})
 }
 
-func getEnv(key, defaultValue string) string {
-	value, found := os.LookupEnv(key)
-	if found {
-		return value
-	}
-	return defaultValue
-}
